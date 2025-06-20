@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime
+import pytz
 from flask import Flask, request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 from sheets import append_action, find_last_start_unmatched, update_duration
@@ -11,11 +12,20 @@ app = Flask(__name__)
 
 VALID_ACTIONS = {"Walk Start", "Walk End", "Poo", "Pee", "Feed"}
 
+# Set up New York timezone
+NY_TIMEZONE = pytz.timezone('America/New_York')
+
+def get_ny_time():
+    """Get current time in New York timezone"""
+    utc_now = datetime.now(pytz.UTC)
+    ny_time = utc_now.astimezone(NY_TIMEZONE)
+    return ny_time
+
 @app.route("/sms", methods=["POST"])
 def sms_webhook():
     try:
         body = request.form.get("Body", "").strip()
-        now = datetime.now()
+        now = get_ny_time()
         logging.info(f"Incoming SMS body: {body!r}")
         
         resp = MessagingResponse()
@@ -36,8 +46,9 @@ def sms_webhook():
                 logging.warning("No active walk found to end")
                 resp.message("No active walk found to end.")
                 return Response(str(resp), mimetype="application/xml")
-            # parse last timestamp
+            # parse last timestamp - assume it's also in NY timezone
             last_ts = datetime.strptime(f"{last['date']} {last['time']}", "%m/%d/%Y %H:%M")
+            last_ts = NY_TIMEZONE.localize(last_ts)
             duration_min = int((now - last_ts).total_seconds() // 60)
             logging.info(f"Walk duration calculated: {duration_min} minutes")
             append_action("Walk End", now, str(duration_min))
