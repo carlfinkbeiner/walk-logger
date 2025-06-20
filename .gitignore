@@ -1,1 +1,7 @@
+# local env files
 .env
+# service account JSONs
+credentials/*.json
+# Twilio SDK token cache etc.
+__pycache__/
+*.pyc
