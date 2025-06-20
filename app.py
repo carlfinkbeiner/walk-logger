@@ -5,6 +5,7 @@ import pytz
 from flask import Flask, request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 from sheets import append_action, find_last_start_unmatched, update_duration
+from twilio.rest import Client
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,17 +16,38 @@ VALID_ACTIONS = {"Walk Start", "Walk End", "Poo", "Pee", "Feed"}
 # Set up New York timezone
 NY_TIMEZONE = pytz.timezone('America/New_York')
 
+# Twilio credentials (add these to your environment)
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', 'YOUR_TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', 'YOUR_TWILIO_AUTH_TOKEN')
+
 def get_ny_time():
     """Get current time in New York timezone"""
     utc_now = datetime.now(pytz.UTC)
     ny_time = utc_now.astimezone(NY_TIMEZONE)
     return ny_time
 
+def get_original_sms_time(message_sid: str):
+    """
+    Fetch the original time the SMS was sent using Twilio API.
+    Returns a datetime object in NY timezone.
+    """
+    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    msg = client.messages(message_sid).fetch()
+    # msg.date_sent is in UTC
+    if msg.date_sent is None:
+        raise ValueError("Twilio message has no date_sent field.")
+    utc_dt = msg.date_sent.replace(tzinfo=pytz.UTC)
+    return utc_dt.astimezone(NY_TIMEZONE)
+
 @app.route("/sms", methods=["POST"])
 def sms_webhook():
     try:
         body = request.form.get("Body", "").strip()
-        now = get_ny_time()
+        message_sid = request.form.get("MessageSid")
+        if not message_sid:
+            raise ValueError("Missing MessageSid in request.")
+        # Use Twilio API to get the original sent time
+        now = get_original_sms_time(message_sid)
         logging.info(f"Incoming SMS body: {body!r}")
         
         resp = MessagingResponse()
