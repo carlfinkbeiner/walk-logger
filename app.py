@@ -30,14 +30,68 @@ def get_original_sms_time(message_sid: str):
     """
     Fetch the original time the SMS was sent using Twilio API.
     Returns a datetime object in NY timezone.
+    Falls back to current server time if API call fails.
     """
-    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-    msg = client.messages(message_sid).fetch()
-    # msg.date_sent is in UTC
-    if msg.date_sent is None:
-        raise ValueError("Twilio message has no date_sent field.")
-    utc_dt = msg.date_sent.replace(tzinfo=pytz.UTC)
-    return utc_dt.astimezone(NY_TIMEZONE)
+    try:
+        # Log credential status for debugging
+        logging.info(f"TWILIO_ACCOUNT_SID present: {bool(TWILIO_ACCOUNT_SID and TWILIO_ACCOUNT_SID != 'YOUR_TWILIO_ACCOUNT_SID')}")
+        logging.info(f"TWILIO_AUTH_TOKEN present: {bool(TWILIO_AUTH_TOKEN and TWILIO_AUTH_TOKEN != 'YOUR_TWILIO_AUTH_TOKEN')}")
+        
+        # Log masked values for debugging
+        if TWILIO_ACCOUNT_SID:
+            logging.info(f"TWILIO_ACCOUNT_SID starts with: {TWILIO_ACCOUNT_SID[:10]}...")
+        if TWILIO_AUTH_TOKEN:
+            logging.info(f"TWILIO_AUTH_TOKEN starts with: {TWILIO_AUTH_TOKEN[:10]}...")
+        
+        # Check if we're reading from .env or environment
+        logging.info(f"Environment check - TWILIO_ACCOUNT_SID from os.getenv: {bool(os.getenv('TWILIO_ACCOUNT_SID'))}")
+        logging.info(f"Environment check - TWILIO_AUTH_TOKEN from os.getenv: {bool(os.getenv('TWILIO_AUTH_TOKEN'))}")
+        
+        if not TWILIO_ACCOUNT_SID or TWILIO_ACCOUNT_SID == 'YOUR_TWILIO_ACCOUNT_SID':
+            raise ValueError("TWILIO_ACCOUNT_SID not properly configured")
+        if not TWILIO_AUTH_TOKEN or TWILIO_AUTH_TOKEN == 'YOUR_TWILIO_AUTH_TOKEN':
+            raise ValueError("TWILIO_AUTH_TOKEN not properly configured")
+            
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        msg = client.messages(message_sid).fetch()
+        
+        # Log available fields for debugging
+        logging.info(f"Twilio message fields: {list(msg.__dict__.keys())}")
+        logging.info(f"Message status: {getattr(msg, 'status', 'N/A')}")
+        logging.info(f"Message date_created: {getattr(msg, 'date_created', 'N/A')}")
+        logging.info(f"Message date_sent: {getattr(msg, 'date_sent', 'N/A')}")
+        logging.info(f"Message date_updated: {getattr(msg, 'date_updated', 'N/A')}")
+        
+        # Try different timestamp fields in order of preference
+        timestamp = None
+        if hasattr(msg, 'date_sent') and msg.date_sent:
+            timestamp = msg.date_sent
+            logging.info(f"Using date_sent: {timestamp}")
+        elif hasattr(msg, 'date_created') and msg.date_created:
+            timestamp = msg.date_created
+            logging.info(f"Using date_created: {timestamp}")
+        elif hasattr(msg, 'date_updated') and msg.date_updated:
+            timestamp = msg.date_updated
+            logging.info(f"Using date_updated: {timestamp}")
+        
+        if timestamp is None:
+            logging.warning("No timestamp field available in Twilio message, falling back to server time")
+            return get_ny_time()
+            
+        # Convert to NY timezone
+        utc_dt = timestamp.replace(tzinfo=pytz.UTC)
+        ny_time = utc_dt.astimezone(NY_TIMEZONE)
+        logging.info(f"Successfully fetched original SMS time: {ny_time}")
+        return ny_time
+        
+    except Exception as e:
+        logging.warning(f"Failed to fetch original SMS time from Twilio API: {e}. Falling back to server time.")
+        return get_ny_time()
+
+@app.route("/", methods=["GET"])
+def health_check():
+    """Simple health check endpoint"""
+    return {"status": "ok", "timestamp": get_ny_time().isoformat()}
 
 @app.route("/sms", methods=["POST"])
 def sms_webhook():
@@ -93,4 +147,15 @@ if __name__ == "__main__":
     print("Starting Flask app...")
     print(f"SPREADSHEET_ID: {os.getenv('SPREADSHEET_ID')}")
     print(f"GOOGLE_CREDENTIALS_JSON_PATH: {os.getenv('GOOGLE_CREDENTIALS_JSON_PATH')}")
+    
+    # Debug Twilio credentials
+    print(f"TWILIO_ACCOUNT_SID present: {bool(os.getenv('TWILIO_ACCOUNT_SID'))}")
+    print(f"TWILIO_AUTH_TOKEN present: {bool(os.getenv('TWILIO_AUTH_TOKEN'))}")
+    twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
+    twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
+    if twilio_sid:
+        print(f"TWILIO_ACCOUNT_SID starts with: {twilio_sid[:10]}...")
+    if twilio_token:
+        print(f"TWILIO_AUTH_TOKEN starts with: {twilio_token[:10]}...")
+    
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
