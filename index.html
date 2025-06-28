@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walk Logger - Dog Activity Tracking App</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 25px;
+        }
+        .feature-box {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+        }
+        .command-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .command {
+            background: #e8f4fd;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #3498db;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .tech-item {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .workflow {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .benefits {
+            background: #d4edda;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐕 Walk Logger - Dog Activity Tracking App</h1>
+        
+        <div class="feature-box">
+            <h2>App Overview</h2>
+            <p>
+                Walk Logger is a <strong>SMS-based dog activity tracking application</strong> that allows users to log various aspects of their dog's daily routine through simple text messages. 
+                The app automatically timestamps activities and calculates walk durations, storing all data in a Google Sheets spreadsheet for easy tracking and analysis.
+            </p>
+        </div>
+
+        <h2>Key Features</h2>
+        
+        <div class="command-list">
+            <h3>📱 Supported Commands</h3>
+            <p>Users can send any of these simple text commands:</p>
+            <div class="command">Walk Start</div>
+            <div class="command">Walk End</div>
+            <div class="command">Poo</div>
+            <div class="command">Pee</div>
+            <div class="command">Feed</div>
+        </div>
+
+        <div class="workflow">
+            <h3>🔄 How It Works</h3>
+            <ol>
+                <li><strong>User sends SMS:</strong> User texts any of the supported commands to the Twilio phone number</li>
+                <li><strong>Automatic timestamping:</strong> App captures the original SMS timestamp using Twilio's API</li>
+                <li><strong>Smart duration calculation:</strong> When "Walk End" is sent, app automatically calculates walk duration from the last "Walk Start"</li>
+                <li><strong>Data storage:</strong> All activities are logged to Google Sheets with date, time, action, and duration</li>
+                <li><strong>Confirmation:</strong> User receives a confirmation message with the logged time and duration (if applicable)</li>
+            </ol>
+        </div>
+
+        <div class="benefits">
+            <h3>✅ Benefits</h3>
+            <ul>
+                <li><strong>Simple & Intuitive:</strong> No app installation required - just send text messages</li>
+                <li><strong>Automatic Tracking:</strong> No need to remember to log activities - just text when they happen</li>
+                <li><strong>Accurate Timestamps:</strong> Uses original SMS timestamps, not server processing time</li>
+                <li><strong>Duration Calculation:</strong> Automatically calculates walk durations</li>
+                <li><strong>Data Analysis:</strong> All data stored in Google Sheets for easy analysis and sharing</li>
+                <li><strong>Reliable:</strong> Built with Flask and Twilio for enterprise-grade reliability</li>
+            </ul>
+        </div>
+
+        <h2>Technical Architecture</h2>
+        
+        <div class="tech-stack">
+            <div class="tech-item">
+                <strong>Backend</strong><br>
+                Python Flask
+            </div>
+            <div class="tech-item">
+                <strong>SMS Service</strong><br>
+                Twilio API
+            </div>
+            <div class="tech-item">
+                <strong>Data Storage</strong><br>
+                Google Sheets API
+            </div>
+            <div class="tech-item">
+                <strong>Timezone</strong><br>
+                New York (EST/EDT)
+            </div>
+        </div>
+
+        <h3>🔧 Technical Implementation</h3>
+        <ul>
+            <li><strong>Webhook Endpoint:</strong> <code>/sms</code> receives incoming SMS via Twilio webhook</li>
+            <li><strong>Message Processing:</strong> Validates commands and extracts original SMS timestamps</li>
+            <li><strong>Data Validation:</strong> Ensures only valid commands are processed</li>
+            <li><strong>Error Handling:</strong> Comprehensive error handling with user-friendly responses</li>
+            <li><strong>Health Check:</strong> <code>/</code> endpoint for monitoring and debugging</li>
+        </ul>
+
+        <h2>Use Cases</h2>
+        <ul>
+            <li><strong>Dog Owners:</strong> Track daily walks, bathroom breaks, and feeding schedules</li>
+            <li><strong>Pet Sitters:</strong> Log activities when caring for dogs</li>
+            <li><strong>Veterinarians:</strong> Monitor patient activity patterns</li>
+            <li><strong>Dog Trainers:</strong> Track training session activities</li>
+            <li><strong>Pet Parents:</strong> Maintain health and activity records</li>
+        </ul>
+
+        <h2>Data Structure</h2>
+        <p>The app logs data in a Google Sheets spreadsheet with the following columns:</p>
+        <ul>
+            <li><strong>Date:</strong> MM/DD/YYYY format</li>
+            <li><strong>Time:</strong> HH:MM format (24-hour)</li>
+            <li><strong>Action:</strong> One of the five supported commands</li>
+            <li><strong>Duration:</strong> Walk duration in minutes (only for "Walk End" entries)</li>
+        </ul>
+
+        <h2>Security & Privacy</h2>
+        <ul>
+            <li>All credentials stored as environment variables</li>
+            <li>Google Sheets API with service account authentication</li>
+            <li>Twilio webhook signature validation (can be enabled)</li>
+            <li>No personal data stored beyond activity logs</li>
+        </ul>
+
+        <div class="feature-box">
+            <h2>🎯 Perfect for Twilio</h2>
+            <p>
+                This application is specifically designed to leverage Twilio's SMS capabilities for a simple, 
+                reliable dog activity tracking solution. It demonstrates best practices in webhook handling, 
+                timestamp management, and user experience design for SMS-based applications.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 
