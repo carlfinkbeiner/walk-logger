@@ -20,6 +20,28 @@ NY_TIMEZONE = pytz.timezone('America/New_York')
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', 'YOUR_TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', 'YOUR_TWILIO_AUTH_TOKEN')
 
+def normalize_action(text: str) -> str:
+    """
+    Normalize action text to title case for consistent matching.
+    Handles various input formats like "walk start", "WALK START", "Walk Start", etc.
+    """
+    # Convert to lowercase first, then title case
+    normalized = text.strip().lower().title()
+    
+    # Handle special case for "Walk End" (two words)
+    if normalized == "Walk End":
+        return "Walk End"
+    elif normalized == "Walk Start":
+        return "Walk Start"
+    elif normalized == "Poo":
+        return "Poo"
+    elif normalized == "Pee":
+        return "Pee"
+    elif normalized == "Feed":
+        return "Feed"
+    
+    return normalized
+
 def get_ny_time():
     """Get current time in New York timezone"""
     utc_now = datetime.now(pytz.UTC)
@@ -100,22 +122,26 @@ def sms_webhook():
         message_sid = request.form.get("MessageSid")
         if not message_sid:
             raise ValueError("Missing MessageSid in request.")
+        
+        # Normalize the action for case-insensitive matching
+        normalized_body = normalize_action(body)
+        
         # Use Twilio API to get the original sent time
         now = get_original_sms_time(message_sid)
-        logging.info(f"Incoming SMS body: {body!r}")
+        logging.info(f"Incoming SMS body: {body!r} -> normalized: {normalized_body!r}")
         
         resp = MessagingResponse()
         # before any logic, log your env:
         logging.info(f"Using SPREADSHEET_ID={os.getenv('SPREADSHEET_ID')}, creds base64? {bool(os.getenv('GOOGLE_CREDENTIALS_JSON'))}")
 
-        print(f"Received SMS: '{body}' at {now}")
+        print(f"Received SMS: '{body}' -> '{normalized_body}' at {now}")
 
-        if body not in VALID_ACTIONS:
-            logging.warning(f"Unrecognized command received: {body!r}")
+        if normalized_body not in VALID_ACTIONS:
+            logging.warning(f"Unrecognized command received: {body!r} -> {normalized_body!r}")
             resp.message(f"Unrecognized command. Use one of: {', '.join(VALID_ACTIONS)}.")
             return Response(str(resp), mimetype="application/xml")
 
-        if body == "Walk End":
+        if normalized_body == "Walk End":
             logging.info("Processing Walk End command")
             last = find_last_start_unmatched()
             if not last:
@@ -130,9 +156,9 @@ def sms_webhook():
             append_action("Walk End", now, str(duration_min))
             resp.message(f"Walk End logged at {now.strftime('%-I:%M %p')}. Duration: {duration_min} min.")
         else:
-            logging.info(f"Processing {body} command")
-            append_action(body, now)
-            resp.message(f"{body} logged at {now.strftime('%-I:%M %p')}.")
+            logging.info(f"Processing {normalized_body} command")
+            append_action(normalized_body, now)
+            resp.message(f"{normalized_body} logged at {now.strftime('%-I:%M %p')}.")
 
         return Response(str(resp), mimetype="application/xml")
     except Exception as e:
